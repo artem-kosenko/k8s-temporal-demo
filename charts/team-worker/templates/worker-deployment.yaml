@@ -1,0 +1,61 @@
+apiVersion: temporal.io/v1alpha1
+kind: TemporalWorkerDeployment
+metadata:
+  name: {{ .Values.temporal.workerDeploymentName }}
+  labels:
+{{ include "team-worker.labels" . | indent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  rollout:
+    strategy: {{ .Values.rollout.strategy }}
+    steps:
+{{- range .Values.rollout.steps }}
+      - rampPercentage: {{ .rampPercentage }}
+        pauseDuration: {{ .pauseDuration }}
+{{- end }}
+  sunset:
+    scaledownDelay: {{ .Values.sunset.scaledownDelay }}
+    deleteDelay: {{ .Values.sunset.deleteDelay }}
+  workerOptions:
+    connectionRef:
+      name: {{ .Values.temporal.connectionName }}
+    temporalNamespace: {{ .Values.temporal.namespace | quote }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "team-worker.name" . }}
+        app.kubernetes.io/instance: {{ include "team-worker.fullname" . }}
+        demo.temporal.io/team: {{ .Values.team | quote }}
+        demo.temporal.io/environment: {{ .Values.environment | quote }}
+    spec:
+      containers:
+        - name: worker
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          env:
+            - name: TEMPORAL_TASK_QUEUE
+              value: {{ .Values.temporal.taskQueue | quote }}
+            - name: WORKER_TEAM
+              value: {{ .Values.team | quote }}
+            - name: WORKER_ENVIRONMENT
+              value: {{ .Values.environment | quote }}
+            - name: HTTP_PORT
+              value: {{ .Values.service.port | quote }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+

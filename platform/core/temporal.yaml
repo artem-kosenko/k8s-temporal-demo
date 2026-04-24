@@ -1,0 +1,89 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: temporal
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: platform
+  source:
+    repoURL: https://go.temporal.io/helm-charts/
+    chart: temporal
+    targetRevision: 0.72.0
+    helm:
+      valuesObject:
+        server:
+          config:
+            persistence:
+              defaultStore: default
+              visibilityStore: visibility
+              numHistoryShards: 512
+              datastores:
+                default:
+                  sql:
+                    createDatabase: true
+                    pluginName: postgres12
+                    databaseName: temporal
+                    connectAddr: temporal-postgresql.temporal-system.svc.cluster.local:5432
+                    connectProtocol: tcp
+                    user: temporal
+                    existingSecret: temporal-postgresql
+                    secretKey: password
+                    maxConns: 20
+                    maxIdleConns: 20
+                    maxConnLifetime: 1h
+                visibility:
+                  sql:
+                    createDatabase: true
+                    pluginName: postgres12
+                    databaseName: temporal_visibility
+                    connectAddr: temporal-postgresql.temporal-system.svc.cluster.local:5432
+                    connectProtocol: tcp
+                    user: temporal
+                    existingSecret: temporal-postgresql
+                    secretKey: password
+                    maxConns: 20
+                    maxIdleConns: 20
+                    maxConnLifetime: 1h
+            namespaces:
+              create: true
+              namespace:
+                - name: default
+                  retention: 3d
+                - name: team-a-dev
+                  retention: 3d
+                - name: team-a-stage
+                  retention: 7d
+                - name: team-b-dev
+                  retention: 3d
+                - name: team-b-stage
+                  retention: 7d
+        frontend:
+          service:
+            type: ClusterIP
+        history:
+          replicaCount: 1
+        matching:
+          replicaCount: 1
+        worker:
+          replicaCount: 1
+        web:
+          enabled: true
+        admintools:
+          enabled: true
+        schema:
+          useHelmHooks: true
+        shims:
+          dockerize: false
+          elasticsearchTool: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: temporal-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

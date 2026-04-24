@@ -1,0 +1,12 @@
+team: team-a
+environment: dev
+
+image:
+  repository: local/team-a-worker
+  tag: dev
+
+temporal:
+  namespace: team-a-dev
+  taskQueue: team-a-dev-greetings
+  workerDeploymentName: team-a-dev-worker
+

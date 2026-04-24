@@ -1,0 +1,9 @@
+apiVersion: temporal.io/v1alpha1
+kind: TemporalConnection
+metadata:
+  name: {{ .Values.temporal.connectionName }}
+  labels:
+{{ include "team-worker.labels" . | indent 4 }}
+spec:
+  hostPort: {{ .Values.temporal.hostPort | quote }}
+

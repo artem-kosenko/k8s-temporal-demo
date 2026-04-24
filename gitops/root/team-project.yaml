@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: teams
+  namespace: argocd
+spec:
+  description: Team-owned worker workloads and isolated environments
+  sourceRepos:
+    - "*"
+  destinations:
+    - namespace: team-a-dev
+      server: https://kubernetes.default.svc
+    - namespace: team-a-stage
+      server: https://kubernetes.default.svc
+    - namespace: team-b-dev
+      server: https://kubernetes.default.svc
+    - namespace: team-b-stage
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+

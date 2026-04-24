@@ -1,0 +1,37 @@
+nameOverride: ""
+fullnameOverride: ""
+
+team: team-a
+environment: dev
+
+image:
+  repository: local/team-a-worker
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+temporal:
+  hostPort: temporal-frontend.temporal-system.svc.cluster.local:7233
+  namespace: team-a-dev
+  connectionName: temporal
+  taskQueue: team-a-dev-greetings
+  workerDeploymentName: team-a-dev-worker
+
+rollout:
+  strategy: Progressive
+  steps:
+    - rampPercentage: 10
+      pauseDuration: 30s
+    - rampPercentage: 50
+      pauseDuration: 60s
+
+sunset:
+  scaledownDelay: 5m
+  deleteDelay: 30m
+
+service:
+  port: 8080
+
+resources: {}
+

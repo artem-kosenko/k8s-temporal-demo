@@ -1,0 +1,7 @@
+apiVersion: v2
+name: team-worker
+description: Reusable Helm chart for a namespace-isolated Temporal worker deployment
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+

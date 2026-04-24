@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: team-environments
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  generators:
+    - list:
+        elements:
+          - name: team-a-dev
+            namespace: team-a-dev
+            valuesFile: team-a-dev.yaml
+          - name: team-a-stage
+            namespace: team-a-stage
+            valuesFile: team-a-stage.yaml
+          - name: team-b-dev
+            namespace: team-b-dev
+            valuesFile: team-b-dev.yaml
+          - name: team-b-stage
+            namespace: team-b-stage
+            valuesFile: team-b-stage.yaml
+  template:
+    metadata:
+      name: "{{name}}"
+    spec:
+      project: teams
+      source:
+        repoURL: __REPO_URL__
+        targetRevision: __TARGET_REVISION__
+        path: charts/team-worker
+        helm:
+          valueFiles:
+            - "values/{{valuesFile}}"
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

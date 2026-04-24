@@ -1,0 +1,24 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  repo-shape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check important files
+        run: |
+          test -f README.md
+          test -f go.mod
+          test -f scripts/start-cluster.sh
+          test -f charts/team-worker/Chart.yaml
+          test -f platform/bootstrap/argocd-values.yaml
+      - name: Lint YAML with kubeconform placeholder
+        run: |
+          echo "Add kubeconform or helm lint here once CI toolchain is finalized."
+
