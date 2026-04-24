@@ -8,8 +8,8 @@ metadata:
 spec:
   project: platform
   source:
-    repoURL: __REPO_URL__
-    targetRevision: __TARGET_REVISION__
+    repoURL: https://github.com/artem-kosenko/k8s-temporal-demo.git
+    targetRevision: main
     path: platform/core
   destination:
     server: https://kubernetes.default.svc

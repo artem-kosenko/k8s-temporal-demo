@@ -21,9 +21,8 @@ declare -a workers=(
 
 for worker in "${workers[@]}"; do
   image_ref="${IMAGE_REGISTRY_PREFIX}/${worker}:${LOCAL_IMAGE_TAG}"
-  image_tar="$(mktemp -t "${worker}.XXXXXX.tar")"
 
-  log "Building ${image_ref} with Docker"
+  log "Building ${image_ref} with Docker in the active Colima runtime"
   docker build \
     --platform linux/arm64 \
     --tag "${image_ref}" \
@@ -31,13 +30,7 @@ for worker in "${workers[@]}"; do
     --build-arg "WORKER_BINARY=${worker}" \
     "${ROOT_DIR}"
 
-  log "Exporting ${image_ref}"
-  docker save --output "${image_tar}" "${image_ref}"
-
-  log "Importing ${image_ref} into Colima k3s/containerd"
-  colima ssh --profile "${COLIMA_PROFILE}" -- sudo k3s ctr images import - < "${image_tar}"
-
-  rm -f "${image_tar}"
+  docker image inspect "${image_ref}" >/dev/null
 done
 
 log "Local worker images are ready"

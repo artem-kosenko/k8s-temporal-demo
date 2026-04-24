@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/your-org/k8s-temporal-demo/internal/workerapp"
+	"github.com/artem-kosenko/k8s-temporal-demo/internal/workerapp"
 )
 
 func main() {

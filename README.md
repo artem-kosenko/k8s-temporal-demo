@@ -81,7 +81,7 @@ make start
 
 This start step also generates or refreshes `~/.kube/config` and selects the `colima-<profile>` context for the active Colima profile.
 
-3. Build the sample worker images and import them into Colima k3s:
+3. Build the sample worker images into the active Colima Docker runtime:
 
 ```bash
 make build-images
@@ -120,11 +120,11 @@ This repo assumes Colima is started with Kubernetes enabled, using the Docker ru
 
 The local image workflow is:
 
-1. build the worker image with `docker build`
-2. export it with `docker save`
-3. import it into Colima's k3s containerd with `sudo k3s ctr images import`
+1. `make start` starts Colima with `--runtime docker --kubernetes`
+2. your local `docker` CLI talks to the Colima Docker daemon
+3. `make build-images` builds worker images directly into that runtime
 
-That import step is important because the k3s node runtime does not reliably consume the host Docker image cache directly.
+Because this setup uses `docker+k3s`, the worker images are immediately available to the cluster after `docker build`; no separate image import step is needed.
 
 ## Platform design choices
 
