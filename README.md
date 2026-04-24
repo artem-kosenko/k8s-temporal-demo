@@ -1,19 +1,19 @@
-# Local Temporal on Minikube Demo
+# Local Temporal on Colima Demo
 
 This repository is a GitOps-ready monorepo for running a local, production-style Temporal setup on a Kubernetes cluster on macOS Apple Silicon.
 
 It is built around:
 
-- Minikube for the local Kubernetes cluster
+- Colima with embedded k3s for the local Kubernetes cluster
 - Argo CD for GitOps reconciliation
 - The official Temporal Helm chart for the Temporal platform
 - The official Temporal Worker Controller charts for worker lifecycle management
 - Namespace isolation for multiple teams and environments
-- Sample Go-based Temporal workers that can be built locally into Minikube and later published from GitHub
+- Sample Go-based Temporal workers that can be built locally, imported into Colima k3s, and later published from GitHub
 
 ## What is included
 
-- `scripts/` to start and stop Minikube, bootstrap Argo CD, build local images, and port-forward UIs
+- `scripts/` to start and stop Colima, bootstrap Argo CD, build local images, and port-forward UIs
 - `gitops/` for the Argo CD root app, projects, and team environment ApplicationSet
 - `platform/` for shared platform manifests and values
 - `charts/team-worker/` for a reusable team worker chart
@@ -56,10 +56,10 @@ This keeps worker rollouts, service accounts, and operational resources isolated
 
 Install these on your Mac before running the scripts:
 
-- `minikube`
+- `colima`
 - `kubectl`
 - `helm`
-- `docker` with a running Linux container backend
+- `docker` CLI
 - `git`
 
 Optional but useful:
@@ -79,7 +79,9 @@ Optional but useful:
 make start
 ```
 
-3. Build the sample worker images into Minikube:
+This start step also generates or refreshes `~/.kube/config` and selects the `colima-<profile>` context for the active Colima profile.
+
+3. Build the sample worker images and import them into Colima k3s:
 
 ```bash
 make build-images
@@ -112,6 +114,18 @@ Run `make render-gitops` before the first push so the child Argo CD applications
 
 If `scripts/bootstrap-argocd.sh` cannot detect a Git remote and `GITOPS_REPO_URL` is not set, it will still install Argo CD but it will stop before creating the root application.
 
+## Colima notes
+
+This repo assumes Colima is started with Kubernetes enabled, using the Docker runtime and embedded k3s.
+
+The local image workflow is:
+
+1. build the worker image with `docker build`
+2. export it with `docker save`
+3. import it into Colima's k3s containerd with `sudo k3s ctr images import`
+
+That import step is important because the k3s node runtime does not reliably consume the host Docker image cache directly.
+
 ## Platform design choices
 
 - PostgreSQL is deployed as a simple in-cluster StatefulSet for the demo.
@@ -141,7 +155,7 @@ The included GitHub Actions are starter scaffolding:
 
 For a real flow, you would typically add:
 
-- image tag updates in the environment values files
+- image tag updates in the chart values files
 - pull-request based promotion between environments
 - Argo CD sync windows or approval gates for non-dev environments
 
@@ -149,7 +163,7 @@ For a real flow, you would typically add:
 
 I used current upstream references on April 24, 2026 for:
 
-- Minikube macOS drivers: [minikube docs](https://minikube.sigs.k8s.io/docs/drivers/)
+- Colima CLI behavior was aligned to the locally installed `colima 0.10.1`
 - Argo CD Helm chart: [Artifact Hub](https://artifacthub.io/packages/helm/argo/argo-cd)
 - Temporal Helm chart repo and docs: [temporalio/helm-charts](https://github.com/temporalio/helm-charts)
 - Temporal Worker Controller install and rollout docs: [temporalio/temporal-worker-controller](https://github.com/temporalio/temporal-worker-controller)

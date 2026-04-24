@@ -10,11 +10,11 @@ if [[ -f "${ENV_FILE}" ]]; then
   source "${ENV_FILE}"
 fi
 
-MINIKUBE_PROFILE="${MINIKUBE_PROFILE:-temporal-demo}"
-MINIKUBE_DRIVER="${MINIKUBE_DRIVER:-docker}"
-MINIKUBE_CPUS="${MINIKUBE_CPUS:-4}"
-MINIKUBE_MEMORY="${MINIKUBE_MEMORY:-8192}"
-MINIKUBE_KUBERNETES_VERSION="${MINIKUBE_KUBERNETES_VERSION:-stable}"
+COLIMA_PROFILE="${COLIMA_PROFILE:-temporal-demo}"
+COLIMA_CPUS="${COLIMA_CPUS:-4}"
+COLIMA_MEMORY="${COLIMA_MEMORY:-8}"
+COLIMA_DISK="${COLIMA_DISK:-60}"
+COLIMA_KUBERNETES_VERSION="${COLIMA_KUBERNETES_VERSION:-v1.35.0+k3s1}"
 
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 ARGOCD_CHART_VERSION="${ARGOCD_CHART_VERSION:-9.5.4}"
@@ -38,6 +38,65 @@ require_bin() {
 
 log() {
   printf "[%s] %s\n" "$(date +%H:%M:%S)" "$*"
+}
+
+ensure_colima_context() {
+  if kubectl config get-contexts -o name | rg -qx "colima-${COLIMA_PROFILE}"; then
+    kubectl config use-context "colima-${COLIMA_PROFILE}" >/dev/null
+    return 0
+  fi
+
+  if kubectl config get-contexts -o name | rg -qx "colima"; then
+    kubectl config use-context colima >/dev/null
+    return 0
+  fi
+
+  return 1
+}
+
+generate_colima_kubeconfig() {
+  local kube_dir="${HOME}/.kube"
+  local base_config="${kube_dir}/config"
+  local generated_config="${kube_dir}/colima-${COLIMA_PROFILE}.yaml"
+  local context_name="colima-${COLIMA_PROFILE}"
+  local temp_source
+  local temp_merged
+
+  mkdir -p "${kube_dir}"
+  temp_source="$(mktemp)"
+  temp_merged="$(mktemp)"
+
+  colima ssh --profile "${COLIMA_PROFILE}" -- sudo cat /etc/rancher/k3s/k3s.yaml > "${temp_source}"
+
+  sed -i '' \
+    -e "s/^  name: default$/  name: ${context_name}/" \
+    -e "s/^    cluster: default$/    cluster: ${context_name}/" \
+    -e "s/^    user: default$/    user: ${context_name}/" \
+    -e "s/^current-context: default$/current-context: ${context_name}/" \
+    "${temp_source}"
+
+  cp "${temp_source}" "${generated_config}"
+
+  if [[ -f "${base_config}" ]]; then
+    KUBECONFIG="${base_config}:${generated_config}" kubectl config view --flatten > "${temp_merged}"
+  else
+    cp "${generated_config}" "${temp_merged}"
+  fi
+
+  mv "${temp_merged}" "${base_config}"
+  rm -f "${temp_source}"
+
+  kubectl config use-context "${context_name}" >/dev/null
+
+  if [[ ! -f "${base_config}" ]]; then
+    printf "Failed to generate kubeconfig at %s\n" "${base_config}" >&2
+    return 1
+  fi
+
+  if ! kubectl config get-contexts -o name | rg -qx "${context_name}"; then
+    printf "Failed to register kubectl context %s\n" "${context_name}" >&2
+    return 1
+  fi
 }
 
 detect_gitops_repo_url() {

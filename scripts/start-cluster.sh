@@ -6,30 +6,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/common.sh"
 
-require_bin minikube
+require_bin colima
 require_bin kubectl
 require_bin docker
+require_bin rg
 
 if ! docker info >/dev/null 2>&1; then
-  printf "Docker is installed but not reachable. Start Docker Desktop or Colima first.\n" >&2
+  log "Docker is not reachable yet; Colima will provide the Docker runtime"
+fi
+
+log "Starting Colima profile ${COLIMA_PROFILE} with Kubernetes enabled"
+colima start \
+  --profile "${COLIMA_PROFILE}" \
+  --runtime docker \
+  --kubernetes \
+  --cpus "${COLIMA_CPUS}" \
+  --memory "${COLIMA_MEMORY}" \
+  --disk "${COLIMA_DISK}" \
+  --kubernetes-version "${COLIMA_KUBERNETES_VERSION}"
+
+if ! docker info >/dev/null 2>&1; then
+  printf "Docker is still not reachable after Colima start.\n" >&2
   exit 1
 fi
 
-log "Starting Minikube profile ${MINIKUBE_PROFILE}"
-minikube start \
-  --profile="${MINIKUBE_PROFILE}" \
-  --driver="${MINIKUBE_DRIVER}" \
-  --container-runtime=containerd \
-  --cpus="${MINIKUBE_CPUS}" \
-  --memory="${MINIKUBE_MEMORY}" \
-  --kubernetes-version="${MINIKUBE_KUBERNETES_VERSION}"
+log "Generating kubeconfig for Colima profile ${COLIMA_PROFILE}"
+generate_colima_kubeconfig
 
-log "Enabling ingress and metrics-server addons"
-minikube addons enable ingress --profile="${MINIKUBE_PROFILE}"
-minikube addons enable metrics-server --profile="${MINIKUBE_PROFILE}"
+if ensure_colima_context; then
+  log "Using kubectl context $(kubectl config current-context)"
+else
+  printf "Colima started but kubectl context selection failed.\n" >&2
+  exit 1
+fi
 
-log "Switching kubectl context to ${MINIKUBE_PROFILE}"
-kubectl config use-context "${MINIKUBE_PROFILE}" >/dev/null
+log "Waiting for Kubernetes API readiness"
+kubectl wait --for=condition=Ready nodes --all --timeout=5m
 
 log "Cluster is ready"
-

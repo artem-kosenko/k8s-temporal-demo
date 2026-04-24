@@ -4,11 +4,11 @@ SHELL := /bin/zsh
 
 help:
 	@printf "Targets:\n"
-	@printf "  make start          Start local Minikube cluster\n"
-	@printf "  make stop           Stop or delete local Minikube cluster\n"
+	@printf "  make start          Start local Colima Kubernetes cluster\n"
+	@printf "  make stop           Stop or delete local Colima profile\n"
 	@printf "  make render-gitops  Render repo URL and revision into GitOps app manifests\n"
 	@printf "  make bootstrap      Install Argo CD and bootstrap the root app\n"
-	@printf "  make build-images   Build sample worker images into Minikube\n"
+	@printf "  make build-images   Build sample worker images and import them into Colima k3s\n"
 	@printf "  make port-forward   Forward Argo CD and Temporal UIs locally\n"
 
 start:

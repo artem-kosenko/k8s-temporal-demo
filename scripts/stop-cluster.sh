@@ -6,22 +6,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/common.sh"
 
-require_bin minikube
+require_bin colima
 
 ACTION="${1:-stop}"
 
 case "${ACTION}" in
   stop)
-    log "Stopping Minikube profile ${MINIKUBE_PROFILE}"
-    minikube stop --profile="${MINIKUBE_PROFILE}"
+    log "Stopping Colima profile ${COLIMA_PROFILE}"
+    colima stop --profile "${COLIMA_PROFILE}"
     ;;
   delete)
-    log "Deleting Minikube profile ${MINIKUBE_PROFILE}"
-    minikube delete --profile="${MINIKUBE_PROFILE}"
+    log "Deleting Colima profile ${COLIMA_PROFILE}"
+    colima delete --profile "${COLIMA_PROFILE}" --force
     ;;
   *)
     printf "Usage: %s [stop|delete]\n" "$0" >&2
     exit 1
     ;;
 esac
-
